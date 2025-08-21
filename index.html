@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <title>JWT Login Example</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous" />
+        <link rel="stylesheet" type="text/css" href="assets/css/custom.css" />
+    </head>
+<body>
+<!-- navbar -->
+<nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+    <a class="navbar-brand" href="#">JWT Login Example</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+        <div class="navbar-nav">
+            <a class="nav-item nav-link" href="#" id='home'>Home</a>
+            <a class="nav-item nav-link" href="#" id='update_account'>Account</a>
+            <a class="nav-item nav-link" href="#" id='logout'>Logout</a>
+            <a class="nav-item nav-link" href="#" id='login'>Login</a>
+            <a class="nav-item nav-link" href="#" id='sign_up'>Sign Up</a>
+        </div>
+    </div>
+</nav>
+<!-- /navbar -->
+<!-- container -->
+<main role="main" class="container starter-template">
+	<div class="row">
+		<div class="col">
+			<!-- where prompt / messages will appear -->
+			<div id="response"></div>
+			<!-- where main content will appear -->
+			<div id="content"></div>
+		</div>
+	</div>
+</main>
+<!-- /container -->
+<!-- jQuery & Bootstrap 4 JavaScript libraries -->
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
+<script>
+$(document).ready(function(){
+
+    // 🧠 COOKIE MŰVELETEK
+    function setCookie(cname, cvalue, exdays) {
+        const d = new Date();
+        d.setTime(d.getTime() + (exdays*24*60*60*1000));
+        const expires = "expires=" + d.toUTCString();
+        document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    }
+
+    function getCookie(cname){
+        const name = cname + "=";
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const ca = decodedCookie.split(';');
+        for(let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    }
+
+    // 🔐 NAVIGÁCIÓS MENÜ MŰKÖDÉSE
+    function showLoggedInMenu() {
+        $("#login, #sign_up").hide();
+        $("#logout, #home, #update_account").show();
+    }
+
+    function showLoggedOutMenu() {
+        $("#login, #sign_up").show();
+        $("#logout, #home, #update_account").hide();
+    }
+
+    // ✅ LOGIN LAP
+    function showLoginPage(){
+        setCookie("jwt", "", 1);
+        const html = `
+            <h2>Login</h2>
+            <form id='login_form'>
+                <div class='form-group'>
+                    <label for='email'>Email address</label>
+                    <input type='email' class='form-control' id='email' name='email' placeholder='Enter email'>
+                </div>
+                <div class='form-group'>
+                    <label for='password'>Password</label>
+                    <input type='password' class='form-control' id='password' name='password' placeholder='Password'>
+                </div>
+                <button type='submit' class='btn btn-primary'>Login</button>
+            </form>`;
+        $('#content').html(html);
+        clearResponse();
+        showLoggedOutMenu();
+    }
+
+    // 🏠 HOME PAGE
+    function showHomePage(){
+        const jwt = getCookie('jwt');
+        $.post("api/validate_token.php", JSON.stringify({ jwt: jwt }))
+        .done(function(result) {
+            const html = `
+                <div class="card">
+                    <div class="card-header">Welcome to Home!</div>
+                    <div class="card-body">
+                        <h5 class="card-title">You are logged in.</h5>
+                        <p class="card-text">You won't be able to access the home and account pages if you are not logged in.</p>
+                    </div>
+                </div>`;
+            $('#content').html(html);
+            showLoggedInMenu();
+        })
+        .fail(function() {
+            showLoginPage();
+            $('#response').html("<div class='alert alert-danger'>Please login to access the home page.</div>");
+        });
+    }
+
+    // 👤 FIÓK MÓDOSÍTÁS
+    function showUpdateAccountForm(){
+        const jwt = getCookie('jwt');
+        $.post("api/validate_token.php", JSON.stringify({ jwt: jwt }))
+        .done(function(result) {
+            const html = `
+                <h2>Update Account</h2>
+                <form id='update_account_form'>
+                    <div class="form-group">
+                        <label for="firstname">Firstname</label>
+                        <input type="text" class="form-control" name="firstname" id="firstname" required value="${result.data.firstname}" />
+                    </div>
+                    <div class="form-group">
+                        <label for="lastname">Lastname</label>
+                        <input type="text" class="form-control" name="lastname" id="lastname" required value="${result.data.lastname}" />
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" class="form-control" name="email" id="email" required value="${result.data.email}" />
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" class="form-control" name="password" id="password" />
+                    </div>
+                    <button type='submit' class='btn btn-primary'>Save Changes</button>
+                </form>`;
+            $('#content').html(html);
+            clearResponse();
+        })
+        .fail(function() {
+            showLoginPage();
+            $('#response').html("<div class='alert alert-danger'>Please login to access the account page.</div>");
+        });
+    }
+
+    function clearResponse(){
+        $('#response').html('');
+    }
+
+    // 📌 NAVBAR GOMBOK
+    $(document).on('click', '#sign_up', function(){
+        const html = `
+            <h2>Sign Up</h2>
+            <form id='sign_up_form'>
+                <div class="form-group">
+                    <label for="firstname">Firstname</label>
+                    <input type="text" class="form-control" name="firstname" id="firstname" required />
+                </div>
+                <div class="form-group">
+                    <label for="lastname">Lastname</label>
+                    <input type="text" class="form-control" name="lastname" id="lastname" required />
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" class="form-control" name="email" id="email" required />
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" class="form-control" name="password" id="password" required />
+                </div>
+                <button type='submit' class='btn btn-primary'>Sign Up</button>
+            </form>`;
+        $('#content').html(html);
+        clearResponse();
+    });
+
+    $(document).on('click', '#login', function(){
+        showLoginPage();
+    });
+
+    $(document).on('click', '#logout', function(){
+        showLoginPage();
+        $('#response').html("<div class='alert alert-info'>You are logged out.</div>");
+    });
+
+    $(document).on('click', '#home', function(){
+        showHomePage();
+        clearResponse();
+    });
+
+    $(document).on('click', '#update_account', function(){
+        showUpdateAccountForm();
+    });
+
+    // 📤 SIGNUP SUBMIT
+    $(document).on('submit', '#sign_up_form', function(){
+        const form = $(this);
+        const data = JSON.stringify(form.serializeObject());
+        $.ajax({
+            url: "api/create_user.php",
+            type : "POST",
+            contentType : 'application/json',
+            data : data,
+            success : function(result) {
+                $('#response').html("<div class='alert alert-success'>Successful sign up. Please login.</div>");
+                form.find('input').val('');
+            },
+            error: function(){
+                $('#response').html("<div class='alert alert-danger'>Unable to sign up. Please contact admin.</div>");
+            }
+        });
+        return false;
+    });
+
+    // 🔐 LOGIN SUBMIT
+    $(document).on('submit', '#login_form', function(){
+        const form = $(this);
+        const data = JSON.stringify(form.serializeObject());
+        $.ajax({
+            url: "api/login.php",
+            type : "POST",
+            contentType : 'application/json',
+            data : data,
+            success : function(result){
+                setCookie("jwt", result.jwt, 1);
+                showHomePage();
+                $('#response').html("<div class='alert alert-success'>Successful login.</div>");
+            },
+            error: function(){
+                $('#response').html("<div class='alert alert-danger'>Login failed. Email or password is incorrect.</div>");
+                form.find('input').val('');
+            }
+        });
+        return false;
+    });
+
+    // ✏️ UPDATE ACCOUNT SUBMIT
+    $(document).on('submit', '#update_account_form', function(){
+        const form = $(this);
+        const dataObj = form.serializeObject();
+        dataObj.jwt = getCookie('jwt');
+        const data = JSON.stringify(dataObj);
+        $.ajax({
+            url: "api/update_user.php",
+            type : "POST",
+            contentType : 'application/json',
+            data : data,
+            success : function(result){
+                $('#response').html("<div class='alert alert-success'>Account was updated.</div>");
+                setCookie("jwt", result.jwt, 1);
+            },
+            error: function(xhr){
+                if(xhr.responseJSON.message == "Unable to update user."){
+                    $('#response').html("<div class='alert alert-danger'>Unable to update account.</div>");
+                }
+                else if(xhr.responseJSON.message == "Access denied."){
+                    showLoginPage();
+                    $('#response').html("<div class='alert alert-danger'>Access denied. Please login.</div>");
+                }
+            }
+        });
+        return false;
+    });
+
+    // 🛠️ SEGÉD: form --> object
+    $.fn.serializeObject = function(){
+        const o = {};
+        const a = this.serializeArray();
+        $.each(a, function() {
+            if (o[this.name] !== undefined) {
+                if (!Array.isArray(o[this.name])) {
+                    o[this.name] = [o[this.name]];
+                }
+                o[this.name].push(this.value || '');
+            } else {
+                o[this.name] = this.value || '';
+            }
+        });
+        return o;
+    };
+
+    // 🚀 Indulás: alapértelmezett kezdőlap
+    showLoginPage();
+
+});
+</script>
+
+</body>
+</html>
